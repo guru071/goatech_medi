@@ -3,20 +3,44 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MediBook Pro - Clinic & Hospital Booking Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: clinics
+    description: Clinic management
+  - name: doctors
+    description: Doctor management
+  - name: appointments
+    description: Appointment booking
+  - name: reviews
+    description: Reviews and ratings
+  - name: subscriptions
+    description: Subscription management
+  - name: payments
+    description: Payment management
+  - name: chats
+    description: Chat messages
+  - name: admin
+    description: Admin operations
+  - name: analytics
+    description: Analytics and reports
+  - name: categories
+    description: Clinic categories
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +48,1124 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserBody"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login with email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+
+  /auth/firebase:
+    post:
+      operationId: firebaseAuth
+      tags: [auth]
+      summary: Authenticate via Firebase (Google/Phone OTP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FirebaseAuthBody"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  # USERS
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # CATEGORIES
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all clinic categories
+      responses:
+        "200":
+          description: Categories list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  # CLINICS
+  /clinics:
+    get:
+      operationId: listClinics
+      tags: [clinics]
+      summary: List and filter clinics
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: city
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: subscriptionPlan
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: openNow
+          in: query
+          schema:
+            type: ["boolean", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Clinics list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicsListResponse"
+
+    post:
+      operationId: registerClinic
+      tags: [clinics]
+      summary: Register a new clinic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClinicBody"
+      responses:
+        "201":
+          description: Clinic registered (pending approval)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+  /clinics/featured:
+    get:
+      operationId: listFeaturedClinics
+      tags: [clinics]
+      summary: Get featured/premium clinics
+      responses:
+        "200":
+          description: Featured clinics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Clinic"
+
+  /clinics/nearby:
+    get:
+      operationId: listNearbyClinics
+      tags: [clinics]
+      summary: Get nearby clinics by coordinates
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: radius
+          in: query
+          schema:
+            type: ["number", "null"]
+        - name: category
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Nearby clinics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Clinic"
+
+  /clinics/{id}:
+    get:
+      operationId: getClinic
+      tags: [clinics]
+      summary: Get clinic details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinic details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicDetail"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateClinic
+      tags: [clinics]
+      summary: Update clinic details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClinicBody"
+      responses:
+        "200":
+          description: Updated clinic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+    delete:
+      operationId: deleteClinic
+      tags: [clinics]
+      summary: Delete a clinic
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /clinics/{id}/approve:
+    post:
+      operationId: approveClinic
+      tags: [clinics]
+      summary: Approve a clinic registration (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinic approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+  /clinics/{id}/reject:
+    post:
+      operationId: rejectClinic
+      tags: [clinics]
+      summary: Reject a clinic registration (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectClinicBody"
+      responses:
+        "200":
+          description: Clinic rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+  /clinics/{clinicId}/stats:
+    get:
+      operationId: getClinicStats
+      tags: [clinics]
+      summary: Get clinic dashboard stats
+      parameters:
+        - name: clinicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinic stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicStats"
+
+  # DOCTORS
+  /clinics/{clinicId}/doctors:
+    get:
+      operationId: listDoctors
+      tags: [doctors]
+      summary: List doctors in a clinic
+      parameters:
+        - name: clinicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Doctors list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Doctor"
+
+    post:
+      operationId: createDoctor
+      tags: [doctors]
+      summary: Add doctor to clinic
+      parameters:
+        - name: clinicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDoctorBody"
+      responses:
+        "201":
+          description: Doctor added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Doctor"
+
+  /doctors/{id}:
+    get:
+      operationId: getDoctor
+      tags: [doctors]
+      summary: Get doctor details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Doctor details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Doctor"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateDoctor
+      tags: [doctors]
+      summary: Update doctor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDoctorBody"
+      responses:
+        "200":
+          description: Updated doctor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Doctor"
+
+    delete:
+      operationId: deleteDoctor
+      tags: [doctors]
+      summary: Delete doctor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /doctors/{id}/slots:
+    get:
+      operationId: getDoctorSlots
+      tags: [doctors]
+      summary: Get available time slots for a doctor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimeSlot"
+
+  # APPOINTMENTS
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments (filtered by user or clinic)
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: clinicId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: doctorId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: date
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Appointments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Book an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointmentBody"
+      responses:
+        "201":
+          description: Appointment booked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "409":
+          description: Time slot already booked
+
+  /appointments/{id}:
+    get:
+      operationId: getAppointment
+      tags: [appointments]
+      summary: Get appointment details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update/reschedule appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppointmentBody"
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+
+  /appointments/{id}/cancel:
+    post:
+      operationId: cancelAppointment
+      tags: [appointments]
+      summary: Cancel an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+
+  /appointments/{id}/complete:
+    post:
+      operationId: completeAppointment
+      tags: [appointments]
+      summary: Mark appointment as completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+
+  /clinics/{clinicId}/queue:
+    get:
+      operationId: getClinicQueue
+      tags: [appointments]
+      summary: Get live token queue for a clinic
+      parameters:
+        - name: clinicId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QueueItem"
+
+  # REVIEWS
+  /clinics/{clinicId}/reviews:
+    get:
+      operationId: listClinicReviews
+      tags: [reviews]
+      summary: Get reviews for a clinic
+      parameters:
+        - name: clinicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Submit a review
+      parameters:
+        - name: clinicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewBody"
+      responses:
+        "201":
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  # SUBSCRIPTIONS
+  /subscriptions/plans:
+    get:
+      operationId: listSubscriptionPlans
+      tags: [subscriptions]
+      summary: Get all subscription plans
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionPlan"
+
+  /subscriptions:
+    get:
+      operationId: listSubscriptions
+      tags: [subscriptions]
+      summary: List subscriptions
+      parameters:
+        - name: clinicId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+
+    post:
+      operationId: createSubscription
+      tags: [subscriptions]
+      summary: Create or upgrade subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionBody"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  # PAYMENTS
+  /payments/orders:
+    post:
+      operationId: createPaymentOrder
+      tags: [payments]
+      summary: Create Razorpay payment order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentOrderBody"
+      responses:
+        "201":
+          description: Payment order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOrder"
+
+  /payments/verify:
+    post:
+      operationId: verifyPayment
+      tags: [payments]
+      summary: Verify Razorpay payment signature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyPaymentBody"
+      responses:
+        "200":
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List payments
+      parameters:
+        - name: clinicId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+
+  # CHATS
+  /chats/rooms:
+    get:
+      operationId: listChatRooms
+      tags: [chats]
+      summary: List chat rooms for current user
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: clinicId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Chat rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatRoom"
+
+    post:
+      operationId: createChatRoom
+      tags: [chats]
+      summary: Create or get chat room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChatRoomBody"
+      responses:
+        "201":
+          description: Chat room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatRoom"
+
+  /chats/rooms/{roomId}/messages:
+    get:
+      operationId: listMessages
+      tags: [chats]
+      summary: Get messages in a chat room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+    post:
+      operationId: sendMessage
+      tags: [chats]
+      summary: Send a message
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  # AI SUGGESTION
+  /ai/suggest-clinics:
+    post:
+      operationId: suggestClinics
+      tags: [clinics]
+      summary: AI-powered clinic suggestions based on symptoms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestClinicsBody"
+      responses:
+        "200":
+          description: Suggested clinics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestClinicsResponse"
+
+  # ADMIN
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Get admin dashboard summary
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/clinics:
+    get:
+      operationId: adminListClinics
+      tags: [admin]
+      summary: Admin list all clinics with filters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: category
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: All clinics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Clinic"
+
+  /admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      summary: Admin list all users
+      responses:
+        "200":
+          description: All users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /admin/revenue:
+    get:
+      operationId: getAdminRevenue
+      tags: [admin]
+      summary: Get platform revenue analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Revenue data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueReport"
+
+  /admin/complaints:
+    get:
+      operationId: listComplaints
+      tags: [admin]
+      summary: List all complaints
+      responses:
+        "200":
+          description: Complaints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Complaint"
+
+    post:
+      operationId: createComplaint
+      tags: [admin]
+      summary: Submit a complaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateComplaintBody"
+      responses:
+        "201":
+          description: Complaint submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Complaint"
+
+  /admin/complaints/{id}:
+    patch:
+      operationId: updateComplaint
+      tags: [admin]
+      summary: Update complaint status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateComplaintBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Complaint"
+
+  /analytics/bookings:
+    get:
+      operationId: getBookingAnalytics
+      tags: [analytics]
+      summary: Get booking analytics over time
+      parameters:
+        - name: clinicId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: period
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Booking analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingAnalytics"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +1176,1172 @@ components:
       required:
         - status
 
+    # AUTH SCHEMAS
+    RegisterUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [patient, clinic_owner, admin]
+      required:
+        - name
+        - email
+        - password
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    FirebaseAuthBody:
+      type: object
+      properties:
+        idToken:
+          type: string
+        provider:
+          type: string
+          enum: [google, phone]
+      required:
+        - idToken
+        - provider
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - token
+        - user
+
+    # USER SCHEMAS
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        firebaseUid:
+          type: ["string", "null"]
+        isVerified:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - role
+        - isVerified
+        - createdAt
+        - updatedAt
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+
+    # CATEGORY SCHEMAS
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        icon:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - slug
+
+    # CLINIC SCHEMAS
+    Clinic:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ownerName:
+          type: string
+        ownerId:
+          type: integer
+        categoryId:
+          type: integer
+        categoryName:
+          type: ["string", "null"]
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        logoUrl:
+          type: ["string", "null"]
+        whatsappNumber:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        subscriptionPlan:
+          type: string
+          enum: [basic, premium, enterprise]
+        status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+        rating:
+          type: ["number", "null"]
+        reviewCount:
+          type: integer
+        isEmergencyAvailable:
+          type: boolean
+        workingHours:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - ownerName
+        - ownerId
+        - categoryId
+        - email
+        - phone
+        - address
+        - city
+        - state
+        - pincode
+        - subscriptionPlan
+        - status
+        - reviewCount
+        - isEmergencyAvailable
+        - createdAt
+        - updatedAt
+
+    ClinicDetail:
+      allOf:
+        - $ref: "#/components/schemas/Clinic"
+        - type: object
+          properties:
+            doctors:
+              type: array
+              items:
+                $ref: "#/components/schemas/Doctor"
+            photos:
+              type: array
+              items:
+                type: string
+            services:
+              type: array
+              items:
+                type: string
+            reviews:
+              type: array
+              items:
+                $ref: "#/components/schemas/Review"
+
+    ClinicsListResponse:
+      type: object
+      properties:
+        clinics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clinic"
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+      required:
+        - clinics
+        - total
+        - hasMore
+
+    CreateClinicBody:
+      type: object
+      properties:
+        name:
+          type: string
+        ownerName:
+          type: string
+        ownerId:
+          type: integer
+        categoryId:
+          type: integer
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        logoUrl:
+          type: ["string", "null"]
+        whatsappNumber:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        subscriptionPlan:
+          type: string
+          enum: [basic, premium, enterprise]
+        workingHours:
+          type: ["string", "null"]
+        isEmergencyAvailable:
+          type: ["boolean", "null"]
+        services:
+          type: ["array", "null"]
+          items:
+            type: string
+        photos:
+          type: ["array", "null"]
+          items:
+            type: string
+      required:
+        - name
+        - ownerName
+        - ownerId
+        - categoryId
+        - email
+        - phone
+        - address
+        - city
+        - state
+        - pincode
+        - subscriptionPlan
+
+    UpdateClinicBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        state:
+          type: ["string", "null"]
+        pincode:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        logoUrl:
+          type: ["string", "null"]
+        whatsappNumber:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        workingHours:
+          type: ["string", "null"]
+        isEmergencyAvailable:
+          type: ["boolean", "null"]
+        services:
+          type: ["array", "null"]
+          items:
+            type: string
+        photos:
+          type: ["array", "null"]
+          items:
+            type: string
+
+    RejectClinicBody:
+      type: object
+      properties:
+        reason:
+          type: string
+      required:
+        - reason
+
+    ClinicStats:
+      type: object
+      properties:
+        totalAppointments:
+          type: integer
+        todayAppointments:
+          type: integer
+        totalPatients:
+          type: integer
+        totalRevenue:
+          type: number
+        pendingAppointments:
+          type: integer
+        completedAppointments:
+          type: integer
+        averageRating:
+          type: ["number", "null"]
+        monthlyRevenue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyRevenueStat"
+      required:
+        - totalAppointments
+        - todayAppointments
+        - totalPatients
+        - totalRevenue
+        - pendingAppointments
+        - completedAppointments
+        - monthlyRevenue
+
+    MonthlyRevenueStat:
+      type: object
+      properties:
+        month:
+          type: string
+        revenue:
+          type: number
+        appointments:
+          type: integer
+      required:
+        - month
+        - revenue
+        - appointments
+
+    # DOCTOR SCHEMAS
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: integer
+        clinicId:
+          type: integer
+        name:
+          type: string
+        qualification:
+          type: string
+        specialization:
+          type: string
+        experience:
+          type: integer
+        consultationFee:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        rating:
+          type: ["number", "null"]
+        availableDays:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        slotDurationMinutes:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - clinicId
+        - name
+        - qualification
+        - specialization
+        - experience
+        - consultationFee
+        - availableDays
+        - startTime
+        - endTime
+        - slotDurationMinutes
+        - isActive
+        - createdAt
+
+    CreateDoctorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        qualification:
+          type: string
+        specialization:
+          type: string
+        experience:
+          type: integer
+        consultationFee:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        availableDays:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        slotDurationMinutes:
+          type: integer
+      required:
+        - name
+        - qualification
+        - specialization
+        - experience
+        - consultationFee
+        - availableDays
+        - startTime
+        - endTime
+        - slotDurationMinutes
+
+    UpdateDoctorBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        qualification:
+          type: ["string", "null"]
+        specialization:
+          type: ["string", "null"]
+        experience:
+          type: ["integer", "null"]
+        consultationFee:
+          type: ["number", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        availableDays:
+          type: ["string", "null"]
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        slotDurationMinutes:
+          type: ["integer", "null"]
+        isActive:
+          type: ["boolean", "null"]
+
+    TimeSlot:
+      type: object
+      properties:
+        time:
+          type: string
+        token:
+          type: integer
+        isAvailable:
+          type: boolean
+      required:
+        - time
+        - token
+        - isAvailable
+
+    # APPOINTMENT SCHEMAS
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        clinicId:
+          type: integer
+        doctorId:
+          type: integer
+        appointmentDate:
+          type: string
+        appointmentTime:
+          type: string
+        tokenNumber:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled, no_show]
+        notes:
+          type: ["string", "null"]
+        consultationFee:
+          type: number
+        patientName:
+          type: ["string", "null"]
+        patientPhone:
+          type: ["string", "null"]
+        clinicName:
+          type: ["string", "null"]
+        doctorName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - clinicId
+        - doctorId
+        - appointmentDate
+        - appointmentTime
+        - tokenNumber
+        - status
+        - consultationFee
+        - createdAt
+        - updatedAt
+
+    CreateAppointmentBody:
+      type: object
+      properties:
+        userId:
+          type: integer
+        clinicId:
+          type: integer
+        doctorId:
+          type: integer
+        appointmentDate:
+          type: string
+        appointmentTime:
+          type: string
+        notes:
+          type: ["string", "null"]
+        patientName:
+          type: ["string", "null"]
+        patientPhone:
+          type: ["string", "null"]
+      required:
+        - userId
+        - clinicId
+        - doctorId
+        - appointmentDate
+        - appointmentTime
+
+    UpdateAppointmentBody:
+      type: object
+      properties:
+        appointmentDate:
+          type: ["string", "null"]
+        appointmentTime:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+
+    QueueItem:
+      type: object
+      properties:
+        tokenNumber:
+          type: integer
+        patientName:
+          type: ["string", "null"]
+        appointmentTime:
+          type: string
+        status:
+          type: string
+        doctorName:
+          type: ["string", "null"]
+        waitingAheadCount:
+          type: integer
+      required:
+        - tokenNumber
+        - appointmentTime
+        - status
+        - waitingAheadCount
+
+    # REVIEW SCHEMAS
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        clinicId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: ["string", "null"]
+        userAvatarUrl:
+          type: ["string", "null"]
+        rating:
+          type: integer
+        comment:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - clinicId
+        - userId
+        - rating
+        - createdAt
+
+    CreateReviewBody:
+      type: object
+      properties:
+        userId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: ["string", "null"]
+      required:
+        - userId
+        - rating
+
+    # SUBSCRIPTION SCHEMAS
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        billingCycle:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        maxDoctors:
+          type: ["integer", "null"]
+        maxAppointmentsPerMonth:
+          type: ["integer", "null"]
+        isFeatured:
+          type: boolean
+        hasAnalytics:
+          type: boolean
+        hasWhatsappIntegration:
+          type: boolean
+      required:
+        - id
+        - name
+        - price
+        - billingCycle
+        - features
+        - isFeatured
+        - hasAnalytics
+        - hasWhatsappIntegration
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        clinicId:
+          type: ["integer", "null"]
+        userId:
+          type: ["integer", "null"]
+        plan:
+          type: string
+          enum: [basic, premium, enterprise]
+        status:
+          type: string
+          enum: [active, expired, cancelled, trial]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        razorpaySubscriptionId:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - plan
+        - status
+        - startDate
+        - endDate
+        - createdAt
+
+    CreateSubscriptionBody:
+      type: object
+      properties:
+        clinicId:
+          type: ["integer", "null"]
+        userId:
+          type: ["integer", "null"]
+        plan:
+          type: string
+          enum: [basic, premium, enterprise]
+        paymentId:
+          type: ["string", "null"]
+      required:
+        - plan
+
+    # PAYMENT SCHEMAS
+    PaymentOrder:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        keyId:
+          type: string
+      required:
+        - orderId
+        - amount
+        - currency
+        - keyId
+
+    CreatePaymentOrderBody:
+      type: object
+      properties:
+        amount:
+          type: number
+        currency:
+          type: string
+        purpose:
+          type: string
+          enum: [subscription, appointment]
+        clinicId:
+          type: ["integer", "null"]
+        subscriptionPlan:
+          type: ["string", "null"]
+      required:
+        - amount
+        - currency
+        - purpose
+
+    VerifyPaymentBody:
+      type: object
+      properties:
+        razorpayOrderId:
+          type: string
+        razorpayPaymentId:
+          type: string
+        razorpaySignature:
+          type: string
+        purpose:
+          type: string
+        clinicId:
+          type: ["integer", "null"]
+        subscriptionPlan:
+          type: ["string", "null"]
+        userId:
+          type: ["integer", "null"]
+      required:
+        - razorpayOrderId
+        - razorpayPaymentId
+        - razorpaySignature
+        - purpose
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        clinicId:
+          type: ["integer", "null"]
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+        razorpayOrderId:
+          type: ["string", "null"]
+        razorpayPaymentId:
+          type: ["string", "null"]
+        purpose:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - amount
+        - currency
+        - status
+        - purpose
+        - createdAt
+
+    # CHAT SCHEMAS
+    ChatRoom:
+      type: object
+      properties:
+        id:
+          type: integer
+        clinicId:
+          type: ["integer", "null"]
+        userId:
+          type: ["integer", "null"]
+        clinicName:
+          type: ["string", "null"]
+        userName:
+          type: ["string", "null"]
+        lastMessage:
+          type: ["string", "null"]
+        lastMessageAt:
+          type: ["string", "null"]
+        unreadCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - unreadCount
+        - createdAt
+
+    CreateChatRoomBody:
+      type: object
+      properties:
+        clinicId:
+          type: integer
+        userId:
+          type: integer
+      required:
+        - clinicId
+        - userId
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        roomId:
+          type: integer
+        senderId:
+          type: integer
+        senderName:
+          type: ["string", "null"]
+        senderRole:
+          type: string
+        content:
+          type: string
+        messageType:
+          type: string
+          enum: [text, image, file]
+        createdAt:
+          type: string
+      required:
+        - id
+        - roomId
+        - senderId
+        - senderRole
+        - content
+        - messageType
+        - createdAt
+
+    SendMessageBody:
+      type: object
+      properties:
+        senderId:
+          type: integer
+        senderRole:
+          type: string
+        content:
+          type: string
+        messageType:
+          type: string
+          enum: [text, image, file]
+      required:
+        - senderId
+        - senderRole
+        - content
+        - messageType
+
+    # AI SCHEMAS
+    SuggestClinicsBody:
+      type: object
+      properties:
+        symptom:
+          type: string
+        city:
+          type: ["string", "null"]
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
+      required:
+        - symptom
+
+    SuggestClinicsResponse:
+      type: object
+      properties:
+        category:
+          type: string
+        reason:
+          type: string
+        clinics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clinic"
+      required:
+        - category
+        - reason
+        - clinics
+
+    # ADMIN SCHEMAS
+    AdminDashboard:
+      type: object
+      properties:
+        totalClinics:
+          type: integer
+        pendingClinics:
+          type: integer
+        approvedClinics:
+          type: integer
+        totalDoctors:
+          type: integer
+        totalPatients:
+          type: integer
+        totalAppointments:
+          type: integer
+        todayAppointments:
+          type: integer
+        totalRevenue:
+          type: number
+        monthlyRevenue:
+          type: number
+        activeSubscriptions:
+          type: integer
+        openComplaints:
+          type: integer
+        recentClinics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clinic"
+        revenueByPlan:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevenuePlanStat"
+      required:
+        - totalClinics
+        - pendingClinics
+        - approvedClinics
+        - totalDoctors
+        - totalPatients
+        - totalAppointments
+        - todayAppointments
+        - totalRevenue
+        - monthlyRevenue
+        - activeSubscriptions
+        - openComplaints
+        - recentClinics
+        - revenueByPlan
+
+    RevenuePlanStat:
+      type: object
+      properties:
+        plan:
+          type: string
+        count:
+          type: integer
+        revenue:
+          type: number
+      required:
+        - plan
+        - count
+        - revenue
+
+    RevenueReport:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+        monthlyData:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyRevenueStat"
+        byPlan:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevenuePlanStat"
+        byCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryRevenueStat"
+      required:
+        - totalRevenue
+        - monthlyData
+        - byPlan
+        - byCategory
+
+    CategoryRevenueStat:
+      type: object
+      properties:
+        category:
+          type: string
+        revenue:
+          type: number
+        count:
+          type: integer
+      required:
+        - category
+        - revenue
+        - count
+
+    Complaint:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        clinicId:
+          type: ["integer", "null"]
+        subject:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - subject
+        - description
+        - status
+        - priority
+        - createdAt
+        - updatedAt
+
+    CreateComplaintBody:
+      type: object
+      properties:
+        userId:
+          type: ["integer", "null"]
+        clinicId:
+          type: ["integer", "null"]
+        subject:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+      required:
+        - subject
+        - description
+        - priority
+
+    UpdateComplaintBody:
+      type: object
+      properties:
+        status:
+          type: ["string", "null"]
+        priority:
+          type: ["string", "null"]
+
+    BookingAnalytics:
+      type: object
+      properties:
+        dailyBookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyBookingStat"
+        byStatus:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusStat"
+        byCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryStat"
+      required:
+        - dailyBookings
+        - byStatus
+        - byCategory
+
+    DailyBookingStat:
+      type: object
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+      required:
+        - date
+        - count
+
+    StatusStat:
+      type: object
+      properties:
+        status:
+          type: string
+        count:
+          type: integer
+      required:
+        - status
+        - count
+
+    CategoryStat:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+      required:
+        - category
+        - count
