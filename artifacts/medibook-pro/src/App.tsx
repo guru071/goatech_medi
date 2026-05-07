@@ -16,7 +16,7 @@ import ProfilePage from "@/pages/profile";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import ClinicRegisterPage from "@/pages/clinic-register";
-import Dental3DPage from "@/pages/dental-3d";
+import Medical3DPage from "@/pages/medical-3d";
 import ClinicDashboardPage from "@/pages/clinic/dashboard";
 import ClinicDoctorsPage from "@/pages/clinic/doctors";
 import ClinicAppointmentsPage from "@/pages/clinic/appointments";
@@ -52,7 +52,7 @@ function Router() {
       <Route path="/chat" component={ChatPage} />
       <Route path="/subscriptions" component={SubscriptionsPage} />
       <Route path="/profile" component={ProfilePage} />
-      <Route path="/dental-3d" component={Dental3DPage} />
+      <Route path="/medical-3d" component={Medical3DPage} />
 
       {/* Auth */}
       <Route path="/login" component={LoginPage} />

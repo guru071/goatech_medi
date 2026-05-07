@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/appointments", icon: <Calendar size={16} />, label: "Appointments" },
     { href: "/chat", icon: <MessageSquare size={16} />, label: "Messages" },
     { href: "/subscriptions", icon: <CreditCard size={16} />, label: "Plans" },
-    { href: "/dental-3d", icon: <Activity size={16} />, label: "3D Dental" },
+    { href: "/medical-3d", icon: <Activity size={16} />, label: "3D Atlas" },
   ];
 
   const clinicLinks = [
