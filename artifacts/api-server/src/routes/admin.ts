@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { db, clinicsTable, usersTable, doctorsTable, appointmentsTable, paymentsTable, subscriptionsTable, complaintsTable, reviewsTable } from "@workspace/db";
+import { db, clinicsTable, usersTable, doctorsTable, appointmentsTable, paymentsTable, subscriptionsTable, complaintsTable, reviewsTable, categoriesTable } from "@workspace/db";
 import { eq, and, count, sum, desc } from "drizzle-orm";
+import bcryptjs from "bcryptjs";
 
 const router: IRouter = Router();
 
@@ -79,6 +80,85 @@ router.get("/admin/revenue", async (req, res): Promise<void> => {
 router.get("/admin/complaints", async (_req, res): Promise<void> => {
   const complaints = await db.select().from(complaintsTable).orderBy(desc(complaintsTable.createdAt));
   res.json(complaints);
+});
+
+// POST /admin/clinics — admin creates a clinic directly (auto-approved)
+router.post("/admin/clinics", async (req, res): Promise<void> => {
+  const {
+    name, ownerName, ownerEmail, ownerPhone,
+    categoryId, email, phone, address, city, state, pincode,
+    subscriptionPlan, workingHours, whatsappNumber, instagramUrl, websiteUrl,
+    isEmergencyAvailable, latitude, longitude,
+  } = req.body;
+
+  if (!name || !ownerName || !ownerEmail || !categoryId || !email || !phone || !address || !city || !state || !pincode) {
+    res.status(400).json({ error: "Required fields: name, ownerName, ownerEmail, categoryId, email, phone, address, city, state, pincode" });
+    return;
+  }
+
+  // Find or create the clinic owner user
+  let owner = (await db.select().from(usersTable).where(eq(usersTable.email, ownerEmail)))[0];
+  if (!owner) {
+    const tempPassword = await bcryptjs.hash("clinic123", 10);
+    [owner] = await db.insert(usersTable).values({
+      name: ownerName,
+      email: ownerEmail,
+      phone: ownerPhone || null,
+      passwordHash: tempPassword,
+      role: "clinic_owner",
+      isVerified: true,
+    }).returning();
+  } else if (owner.role !== "clinic_owner" && owner.role !== "admin") {
+    await db.update(usersTable).set({ role: "clinic_owner" }).where(eq(usersTable.id, owner.id));
+  }
+
+  const [clinic] = await db.insert(clinicsTable).values({
+    name,
+    ownerName,
+    ownerId: owner.id,
+    categoryId: parseInt(String(categoryId), 10),
+    email,
+    phone,
+    address,
+    city,
+    state,
+    pincode,
+    subscriptionPlan: subscriptionPlan || "basic",
+    workingHours: workingHours || "Mon-Sat: 9 AM - 6 PM",
+    whatsappNumber: whatsappNumber || null,
+    instagramUrl: instagramUrl || null,
+    websiteUrl: websiteUrl || null,
+    isEmergencyAvailable: !!isEmergencyAvailable,
+    latitude: latitude ? String(latitude) : null,
+    longitude: longitude ? String(longitude) : null,
+    status: "approved",
+  }).returning();
+
+  res.status(201).json({ clinic, owner: { ...owner, passwordHash: undefined } });
+});
+
+// PATCH /admin/clinics/:id — admin edits a clinic
+router.patch("/admin/clinics/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  const allowed = ["name","ownerName","email","phone","address","city","state","pincode",
+    "categoryId","subscriptionPlan","workingHours","whatsappNumber","instagramUrl",
+    "websiteUrl","isEmergencyAvailable","status","latitude","longitude"];
+  const updates: Record<string, unknown> = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+  if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
+  const [clinic] = await db.update(clinicsTable).set(updates).where(eq(clinicsTable.id, id)).returning();
+  if (!clinic) { res.status(404).json({ error: "Clinic not found" }); return; }
+  res.json(clinic);
+});
+
+// DELETE /admin/clinics/:id — admin deletes a clinic
+router.delete("/admin/clinics/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  const [deleted] = await db.delete(clinicsTable).where(eq(clinicsTable.id, id)).returning();
+  if (!deleted) { res.status(404).json({ error: "Clinic not found" }); return; }
+  res.json({ success: true });
 });
 
 router.post("/admin/complaints", async (req, res): Promise<void> => {
